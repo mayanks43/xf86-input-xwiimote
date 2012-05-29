@@ -86,6 +86,7 @@ enum motion_type {
 enum motion_source {
 	SOURCE_NONE,
 	SOURCE_ACCEL,
+	SOURCE_IR,
 };
 
 struct xwiimote_dev {
@@ -337,6 +338,22 @@ static void xwiimote_accel(struct xwiimote_dev *dev, struct xwii_event *ev)
 	}
 }
 
+static void xwiimote_ir(struct xwiimote_dev *dev, struct xwii_event *ev)
+{
+	int32_t x, y;
+		int absolute;
+
+		absolute = dev->motion;
+
+		if (dev->motion_source == SOURCE_IR) {
+			x = -1 * ev->v.abs[0].x + 512;
+			y = ev->v.abs[0].y - 512;
+			//fprintf (stderr, "Output 1 %d %d",x,y );
+			xf86IDrvMsg(dev->info, X_NOTICE, "Output 1 %d %d\n",x,y );
+
+			xf86PostMotionEvent(dev->info->dev, absolute, 0, 2, x, y);
+		}
+}
 static void xwiimote_input(int fd, pointer data)
 {
 	struct xwiimote_dev *dev = data;
@@ -361,6 +378,9 @@ static void xwiimote_input(int fd, pointer data)
 			case XWII_EVENT_ACCEL:
 				xwiimote_accel(dev, &ev);
 				break;
+			case XWII_EVENT_IR:
+				xwiimote_ir(dev, &ev);
+				break;
 		}
 	} while (!ret);
 
@@ -377,7 +397,7 @@ static int xwiimote_on(struct xwiimote_dev *dev, DeviceIntPtr device)
 	int ret;
 	InputInfoPtr info = device->public.devicePrivate;
 
-	ret = xwii_iface_open(dev->iface, XWII_IFACE_CORE | XWII_IFACE_ACCEL);
+	ret = xwii_iface_open(dev->iface, XWII_IFACE_CORE | XWII_IFACE_ACCEL | XWII_IFACE_IR);
 	if (ret) {
 		xf86IDrvMsg(dev->info, X_ERROR, "Cannot open interface\n");
 		return BadValue;
@@ -1073,6 +1093,11 @@ static void xwiimote_configure(struct xwiimote_dev *dev)
 	if (!strcasecmp(motion, "accelerometer")) {
 		dev->motion = MOTION_ABS;
 		dev->motion_source = SOURCE_ACCEL;
+	}
+
+	if (!strcasecmp(motion, "ir")) {
+		dev->motion = MOTION_ABS;
+		dev->motion_source = SOURCE_IR;
 	}
 
 	key = xf86FindOptionValue(dev->info->options, "MapLeft");
