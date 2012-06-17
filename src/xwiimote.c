@@ -45,10 +45,11 @@
 #include <xserver-properties.h>
 #include <xwiimote.h>
 
+#define CACHE_SIZE 20
 #define MIN_KEYCODE 8
 
 static char xwiimote_name[] = "xwiimote";
-
+static int prev_x[CACHE_SIZE][4], prev_y[CACHE_SIZE][4];
 enum func_type {
 	FUNC_IGNORE,
 	FUNC_BTN,
@@ -340,19 +341,59 @@ static void xwiimote_accel(struct xwiimote_dev *dev, struct xwii_event *ev)
 
 static void xwiimote_ir(struct xwiimote_dev *dev, struct xwii_event *ev)
 {
-	int32_t x, y;
-		int absolute;
+	int32_t x, y, xn, ny;
+	int absolute;
+	int p,m;
+	absolute = dev->motion;
 
-		absolute = dev->motion;
+	if (dev->motion_source == SOURCE_IR) {
 
-		if (dev->motion_source == SOURCE_IR) {
-			x = -1 * ev->v.abs[0].x + 512;
-			y = ev->v.abs[0].y - 512;
-			//fprintf (stderr, "Output 1 %d %d",x,y );
-			xf86IDrvMsg(dev->info, X_NOTICE, "Output 1 %d %d\n",x,y );
-
-			xf86PostMotionEvent(dev->info->dev, absolute, 0, 2, x, y);
+		//shift places
+		for(p=CACHE_SIZE-1;p>0;p--)
+		{
+			for(m=0;m<3;m++)
+			{
+				prev_x[p][m] = prev_x[p-1][m];
+				prev_y[p][m] = prev_y[p-1][m];
+			}
 		}
+		//store in cache
+		for(m=0;m<3;m++)
+		{
+			x = -1 * ev->v.abs[m].x + 512;
+			y = ev->v.abs[m].y - 512;
+			prev_x[0][m] = x;
+			prev_y[0][m] = y;
+		}
+		//get legal averaged out values
+		x = 0;
+		xn = 0;
+		y = 0;
+		ny = 0;
+		for(p=0;p<CACHE_SIZE;p++)
+		{
+			if(prev_x[p][0] > -500 && prev_y[p][0] > -500 && prev_x[p][0] < 500 && prev_y[p][0] < 500)
+			{
+				x +=  prev_x[p][0];
+				xn++;
+				y +=  prev_y[p][0];
+				ny++;
+			}
+		}
+
+        if(xn == 0 || ny == 0)
+        {
+            x = -1 * ev->v.abs[m].x + 512;
+			y = ev->v.abs[m].y - 512;
+            xf86PostMotionEvent(dev->info->dev, absolute, 0, 2, (x), (y));
+        }
+		else
+		{
+		    xf86PostMotionEvent(dev->info->dev, absolute, 0, 2, (x/xn), (y/ny));
+		    xf86IDrvMsg(dev->info, X_NOTICE, "Output %d %d\n CACHE_SIZE %d", (x/xn), (y/ny), CACHE_SIZE);
+		}
+		
+	}
 }
 static void xwiimote_input(int fd, pointer data)
 {
@@ -371,6 +412,7 @@ static void xwiimote_input(int fd, pointer data)
 		if (ret)
 			break;
 
+		
 		switch (ev.type) {
 			case XWII_EVENT_KEY:
 				xwiimote_key(dev, &ev);
@@ -396,8 +438,8 @@ static int xwiimote_on(struct xwiimote_dev *dev, DeviceIntPtr device)
 {
 	int ret;
 	InputInfoPtr info = device->public.devicePrivate;
-
-	ret = xwii_iface_open(dev->iface, XWII_IFACE_CORE | XWII_IFACE_ACCEL | XWII_IFACE_IR);
+	int tempa,tempb;
+	ret = xwii_iface_open(dev->iface, XWII_IFACE_CORE | XWII_IFACE_ACCEL | XWII_IFACE_IR | XWII_IFACE_EXT);
 	if (ret) {
 		xf86IDrvMsg(dev->info, X_ERROR, "Cannot open interface\n");
 		return BadValue;
@@ -411,7 +453,14 @@ static int xwiimote_on(struct xwiimote_dev *dev, DeviceIntPtr device)
 	}
 
 	device->public.on = TRUE;
-
+	for(tempa = 0;tempa < CACHE_SIZE;tempa++)
+	{
+		for(tempb = 0;tempb<4;tempb++)
+		{
+			prev_x[tempa][tempb] = -999;
+			prev_y[tempa][tempb] = -999;
+		}
+	}
 	return Success;
 }
 
@@ -1132,6 +1181,8 @@ static void xwiimote_configure(struct xwiimote_dev *dev)
 
 	key = xf86FindOptionValue(dev->info->options, "MapTwo");
 	parse_key(dev, key, &dev->map_key[XWII_KEY_TWO]);
+
+
 }
 
 static int xwiimote_preinit(InputDriverPtr drv, InputInfoPtr info, int flags)
