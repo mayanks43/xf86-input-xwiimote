@@ -1,10 +1,8 @@
         X.Org Wii Remote Input Driver
 
-This package includes an X.Org input driver for Nintendo Wii Remotes. It is
-based on the xwiimote packages available at http://github.com/dvdhrm/xwiimote.
-
-However, for this driver you don't need to install libxwiimote.
-It's included along with xinput driver.
+This package includes an X.Org input driver for Nintendo Wii Remotes. It is a
+fork of https://github.com/dvdhrm/xf86-input-xwiimote. It has been modified to
+include IR pointing capabilties.
 
 To install this driver use:
 	./waf configure
@@ -14,5 +12,3 @@ To install this driver use:
 Please also copy the configuration file, otherwise the driver won't get loaded:
 	cp 60-xorg-xwiimote.conf /etc/X11/xorg.conf.d/
 	
-This driver is a fork of https://github.com/dvdhrm/xf86-input-xwiimote. It has been modified to include IR pointing capabilties. For
-license information see ./COPYING.

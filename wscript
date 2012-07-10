@@ -3,11 +3,10 @@
 NAME = 'xf86-input-xwiimote'
 DATE = '11/07/2012'
 VERSION = '0.2'
-WEBSITE = 'https://github.com/mayanks43/xf86-input-xwiimote'
+WEBSITE = 'http://hg.pysoy.org/xf86-input-wiimote'
 LICENSE = '''
     XInput Module for Wii Remote
-    Copyright (C) 2011,2012 David Herrmann
-    Copyright (C) 2012 Mayank Singh
+    Copyright (C) 2012 Copyleft Games Group
     
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as published by
