@@ -1,7 +1,8 @@
 /*
- * XWiimote
+ * XInput Module for Wii Remote
  *
  * Copyright (c) 2011, 2012 David Herrmann <dh.herrmann@googlemail.com>
+ * Copyright (c) 2012 Mayank Singh <mayanks43@gmail.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files
@@ -45,7 +46,7 @@
 #include <xserver-properties.h>
 #include <xwiimote.h>
 
-#define CACHE_SIZE 20
+#define CACHE_SIZE 16
 #define MIN_KEYCODE 8
 
 static char xwiimote_name[] = "xwiimote";
@@ -341,7 +342,7 @@ static void xwiimote_accel(struct xwiimote_dev *dev, struct xwii_event *ev)
 
 static void xwiimote_ir(struct xwiimote_dev *dev, struct xwii_event *ev)
 {
-	int32_t x, y, xn, ny;
+	int32_t x, y, number_of_x, number_of_y;
 	int absolute;
 	int p,m;
 	absolute = dev->motion;
@@ -367,21 +368,21 @@ static void xwiimote_ir(struct xwiimote_dev *dev, struct xwii_event *ev)
 		}
 		//get legal averaged out values
 		x = 0;
-		xn = 0;
+		number_of_x = 0;
 		y = 0;
-		ny = 0;
+		number_of_y = 0;
 		for(p=0;p<CACHE_SIZE;p++)
 		{
 			if(prev_x[p][0] > -500 && prev_y[p][0] > -500 && prev_x[p][0] < 500 && prev_y[p][0] < 500)
 			{
 				x +=  prev_x[p][0];
-				xn++;
+				number_of_x++;
 				y +=  prev_y[p][0];
-				ny++;
+				number_of_y++;
 			}
 		}
 
-        if(xn == 0 || ny == 0)
+        if(number_of_x == 0 || number_of_y == 0)
         {
             x = -1 * ev->v.abs[m].x + 512;
 			y = ev->v.abs[m].y - 512;
@@ -389,8 +390,15 @@ static void xwiimote_ir(struct xwiimote_dev *dev, struct xwii_event *ev)
         }
 		else
 		{
-		    xf86PostMotionEvent(dev->info->dev, absolute, 0, 2, (x/xn), (y/ny));
-		    xf86IDrvMsg(dev->info, X_NOTICE, "Output %d %d\n CACHE_SIZE %d", (x/xn), (y/ny), CACHE_SIZE);
+		    if(number_of_x == 16 && number_of_y == 16)
+		    {
+		        xf86PostMotionEvent(dev->info->dev, absolute, 0, 2, x>>4, y>>4);
+		    }
+		    else
+		    {
+		        xf86PostMotionEvent(dev->info->dev, absolute, 0, 2, x/number_of_x, y/number_of_y);
+		    }
+		    xf86IDrvMsg(dev->info, X_NOTICE, "Output %d %d\n CACHE_SIZE %d", (x/number_of_x), (y/number_of_y), CACHE_SIZE);
 		}
 		
 	}
