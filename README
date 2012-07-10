@@ -13,4 +13,6 @@ To install this driver use:
 
 Please also copy the configuration file, otherwise the driver won't get loaded:
 	cp 60-xorg-xwiimote.conf /etc/X11/xorg.conf.d/
-
+	
+This driver is a fork of https://github.com/dvdhrm/xf86-input-xwiimote. It has been modified to include IR pointing capabilties. For
+license information see ./COPYING.
