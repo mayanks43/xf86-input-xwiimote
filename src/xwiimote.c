@@ -44,7 +44,7 @@
 #include <xkbstr.h>
 #include <xorgVersion.h>
 #include <xserver-properties.h>
-#include <xwiimote.h>
+#include "xwiimote.h"
 
 #define CACHE_SIZE 16
 #define MIN_KEYCODE 8
