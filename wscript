@@ -2,7 +2,7 @@
 
 NAME = 'xf86-input-xwiimote'
 DATE = '11/07/2012'
-VERSION = '0.1'
+VERSION = '0.2'
 WEBSITE = 'https://github.com/mayanks43/xf86-input-xwiimote'
 LICENSE = '''
     XInput Module for Wii Remote
